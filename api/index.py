@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 import re
 
 app = Flask(__name__)
+CORS(app)  # 允许跨域请求
 
 def get_video_id(url_or_id):
     """从 URL 中提取 Video ID"""
@@ -44,9 +46,12 @@ def catch_all(path):
             "transcript_json": transcript_list
         })
 
+    except TranscriptsDisabled:
+        return jsonify({"error": "Transcripts are disabled for this video"}), 404
+    except NoTranscriptFound:
+        return jsonify({"error": "No transcript found for this video"}), 404
     except Exception as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
-# Vercel 需要这一行
-if __name__ == '__main__':
-    app.run()
+# Vercel 需要导出 app 作为 handler
+# 对于 @vercel/python，直接导出 Flask app 即可
